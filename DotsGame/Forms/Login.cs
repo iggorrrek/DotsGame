@@ -1,4 +1,5 @@
-﻿namespace DotsGame
+﻿using DotsGame.Forms;
+namespace DotsGame
 {
     public partial class Login : Form
     {
@@ -7,8 +8,6 @@
             InitializeComponent();
             SettingsUnits();
         }
-        private char passwordMaskChar = '●';
-        private bool isPasswordHidden = true; 
         private void SettingsUnits()
         {
             txtLogin.KeyPress += txtLogin_KeyPress;
@@ -27,22 +26,35 @@
                 e.Handled = true;
             }
         }
-        private void txtPassword_IconLeftClick(object sender, EventArgs e)
+        private void txtPassword_IconRightClick(object sender, EventArgs e)
         {
-            if (isPasswordHidden)
-            {
-                txtPassword.PasswordChar = '\0';
-            }
-            else
-            {
-                txtPassword.PasswordChar = passwordMaskChar;
-            }
-
-            isPasswordHidden = !isPasswordHidden;
+            txtPassword.UseSystemPasswordChar = !txtPassword.UseSystemPasswordChar;
+            txtPassword.PasswordChar = txtPassword.UseSystemPasswordChar ? '*' : '\0';
         }
         private void Login_Load(object sender, EventArgs e)
         {
 
+        }
+
+        private void btnRegister_Click(object sender, EventArgs e)
+        {
+            Form registerform = new Registration();
+            registerform.Owner = this;
+            registerform.StartPosition = FormStartPosition.Manual;
+            registerform.Location = this.Location;
+            registerform.Show();
+            this.LocationChanged += (s, e) => {
+                registerform.Location = new Point(
+                    this.Location.X + (this.Width - registerform.Width) / 2,
+                    this.Location.Y + (this.Height - registerform.Height) / 2
+                );
+            };
+            registerform.LocationChanged += (s, e) => {
+                this.Location = new Point(
+                    registerform.Location.X + (registerform.Width - this.Width) / 2,
+                    registerform.Location.Y + (registerform.Height - this.Height) / 2
+                );
+            };
         }
     }
 }

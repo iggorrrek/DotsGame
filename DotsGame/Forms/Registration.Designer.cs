@@ -118,11 +118,13 @@
             txtPassword.IconRight = (Image)resources.GetObject("txtPassword.IconRight");
             txtPassword.Location = new Point(447, 340);
             txtPassword.Name = "txtPassword";
+            txtPassword.PasswordChar = '●';
             txtPassword.PlaceholderText = "Пароль";
             txtPassword.SelectedText = "";
             txtPassword.ShadowDecoration.CustomizableEdges = customizableEdges4;
             txtPassword.Size = new Size(357, 36);
             txtPassword.TabIndex = 8;
+            txtPassword.IconRightClick += txtPassword_IconRightClick_1;
             // 
             // txtPassword2
             // 
@@ -142,11 +144,13 @@
             txtPassword2.IconRight = (Image)resources.GetObject("txtPassword2.IconRight");
             txtPassword2.Location = new Point(447, 382);
             txtPassword2.Name = "txtPassword2";
+            txtPassword2.PasswordChar = '●';
             txtPassword2.PlaceholderText = "Повторите пароль";
             txtPassword2.SelectedText = "";
             txtPassword2.ShadowDecoration.CustomizableEdges = customizableEdges6;
             txtPassword2.Size = new Size(357, 36);
             txtPassword2.TabIndex = 9;
+            txtPassword2.IconRightClick += txtPassword2_IconRightClick_1;
             // 
             // btnRegister
             // 
@@ -286,6 +290,7 @@
             // guna2DragControl1
             // 
             guna2DragControl1.DockIndicatorTransparencyValue = 0.6D;
+            guna2DragControl1.DragStartTransparencyValue = 1D;
             guna2DragControl1.TargetControl = guna2Panel1;
             guna2DragControl1.UseTransparentDrag = true;
             // 
@@ -310,6 +315,7 @@
             FormBorderStyle = FormBorderStyle.None;
             Name = "Registration";
             Text = "Registration";
+            Load += Registration_Load;
             ResumeLayout(false);
             PerformLayout();
         }

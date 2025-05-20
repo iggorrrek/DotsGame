@@ -157,6 +157,7 @@
             btnRegister.Size = new Size(284, 47);
             btnRegister.TabIndex = 4;
             btnRegister.Text = "Регистрация";
+            btnRegister.Click += btnRegister_Click;
             // 
             // lblHeader
             // 
@@ -211,12 +212,14 @@
             txtPassword.IconRight = (Image)resources.GetObject("txtPassword.IconRight");
             txtPassword.Location = new Point(453, 331);
             txtPassword.Name = "txtPassword";
+            txtPassword.PasswordChar = '●';
             txtPassword.PlaceholderText = "Пароль";
             txtPassword.SelectedText = "";
             txtPassword.ShadowDecoration.CustomizableEdges = customizableEdges2;
             txtPassword.Size = new Size(357, 36);
             txtPassword.TabIndex = 7;
-            txtPassword.IconLeftClick += this.txtPassword_IconLeftClick;
+            txtPassword.UseSystemPasswordChar = true;
+            txtPassword.IconRightClick += txtPassword_IconRightClick;
             // 
             // guna2AnimateWindow1
             // 
