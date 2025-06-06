@@ -1,4 +1,9 @@
-﻿using DotsGame.Forms;
+﻿using DotsGame.Data;
+using DotsGame.Forms;
+using System;
+using System.Drawing;
+using System.Windows.Forms;
+
 namespace DotsGame
 {
     public partial class Login : Form
@@ -7,6 +12,7 @@ namespace DotsGame
         {
             InitializeComponent();
             SettingsUnits();
+            btnEnter.Click += btnEnter_Click;
         }
         private void SettingsUnits()
         {
@@ -35,6 +41,48 @@ namespace DotsGame
         {
 
         }
+        private void btnEnter_Click(object sender, EventArgs e)
+        {
+            if (string.IsNullOrEmpty(txtLogin.Text) || string.IsNullOrEmpty(txtPassword.Text))
+            {
+                MessageBox.Show("Введите логин и пароль!", "Ошибка",
+                              MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            try
+            {
+                using (var db = new AppDbContext())
+                {
+                    var user = db.Users.FirstOrDefault(u => u.Login == txtLogin.Text);
+
+                    if (user == null)
+                    {
+                        MessageBox.Show("Пользователь не найден!", "Ошибка",
+                                      MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        return;
+                    }
+
+                    if (!user.VerifyPassword(txtPassword.Text))
+                    {
+                        MessageBox.Show("Неверный пароль!", "Ошибка",
+                                      MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        return;
+                    }
+
+                    var gameForm = new Game(user);
+                    gameForm.FormClosed += (s, args) => this.Close(); 
+                    gameForm.Show();
+                    this.Hide();
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ошибка входа: {ex.Message}", "Ошибка",
+                              MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
 
         private void btnRegister_Click(object sender, EventArgs e)
         {
