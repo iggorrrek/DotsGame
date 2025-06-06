@@ -2,6 +2,10 @@
 using Guna.UI2.WinForms;
 using System;
 using System.Drawing;
+using System.Net;
+using System.Net.Sockets;
+using System.Text;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace DotsGame.Forms
@@ -22,14 +26,23 @@ namespace DotsGame.Forms
         private Label player2Label;
         private Label scoreLabel;
 
-        public Game(User user)
+        private Socket _socket;
+        private bool _isHost = false;
+        private bool _isMyTurn = false;
+        private string _opponentName = "Ожидание игрока...";
+
+        public Game(User user, bool isHost = false, string opponentIP = null)
         {
             _currentUser = user;
+            _isHost = isHost;
             InitializeComponent();
             InitializeForm();
             InitializePlayersPanel();
             InitializeGameBoard();
             InitializeControls();
+
+            if (isHost) StartServer();
+            else if (!string.IsNullOrEmpty(opponentIP)) ConnectToServer(opponentIP);
         }
 
         private void InitializeForm()
@@ -41,9 +54,7 @@ namespace DotsGame.Forms
             this.MaximizeBox = false;
         }
 
-        private void Game_Load(object sender, EventArgs e)
-        {
-        }
+        private void Game_Load(object sender, EventArgs e) { }
 
         private void InitializePlayersPanel()
         {
@@ -92,16 +103,9 @@ namespace DotsGame.Forms
             };
             profileButton.Click += (s, e) =>
             {
-                if (_currentUser == null)
-                {
-                    MessageBox.Show("Ошибка: данные пользователя не загружены");
-                    return;
-                }
-
                 var mainForm = new Main(_currentUser);
                 mainForm.Show();
                 this.Hide();
-
                 mainForm.FormClosed += (s, args) => this.Show();
             };
 
@@ -139,7 +143,7 @@ namespace DotsGame.Forms
 
             player2Label = new Label()
             {
-                Text = "Игрок 2",
+                Text = _opponentName,
                 Font = new Font("Segoe UI", 12, FontStyle.Bold),
                 Location = new Point(playersInfoPanel.Width - 120, 15),
                 AutoSize = true
@@ -174,7 +178,6 @@ namespace DotsGame.Forms
                     gameBoard.Controls.Add(dot);
                 }
             }
-
             this.Controls.Add(gameBoard);
         }
 
@@ -214,13 +217,127 @@ namespace DotsGame.Forms
             this.Controls.Add(controlsPanel);
         }
 
+        private void StartServer()
+        {
+            Task.Run(() =>
+            {
+                try
+                {
+                    var listener = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+                    listener.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
+
+                    listener.Bind(new IPEndPoint(IPAddress.Any, 8888));
+                    listener.Listen(1);
+
+                    _socket = listener.Accept();
+                    _isMyTurn = true;
+                    SendPlayerName();
+                    BeginReceiveData();
+                }
+                catch (SocketException ex)
+                {
+                    MessageBox.Show($"Ошибка: {ex.Message}");
+                }
+            });
+        }
+
+        private void ConnectToServer(string ip)
+        {
+            _socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+            _socket.Connect(new IPEndPoint(IPAddress.Parse(ip), 8888));
+            _isMyTurn = false;
+            SendPlayerName();
+            BeginReceiveData();
+        }
+
+        private void SendPlayerName()
+        {
+            if (_socket == null || !_socket.Connected) return;
+            string message = $"NAME:{_currentUser.Login}";
+            byte[] data = Encoding.UTF8.GetBytes(message);
+            _socket.Send(data);
+        }
+
+        private void BeginReceiveData()
+        {
+            Task.Run(() =>
+            {
+                byte[] buffer = new byte[1024];
+                while (_socket != null && _socket.Connected)
+                {
+                    try
+                    {
+                        int bytesRead = _socket.Receive(buffer);
+                        string receivedData = Encoding.UTF8.GetString(buffer, 0, bytesRead);
+                        ProcessReceivedData(receivedData);
+                    }
+                    catch (SocketException) { break; }
+                }
+            });
+        }
+
+        private void ProcessReceivedData(string data)
+        {
+            if (data.StartsWith("NAME:"))
+            {
+                _opponentName = data.Substring(5);
+                UpdateOpponentName();
+            }
+            else
+            {
+                var parts = data.Split(',');
+                if (parts.Length == 4 && int.TryParse(parts[0], out int x1))
+                {
+                    DrawOpponentMove(x1, int.Parse(parts[1]), int.Parse(parts[2]), int.Parse(parts[3]));
+                    _isMyTurn = true;
+                }
+            }
+        }
+
+        private void UpdateOpponentName()
+        {
+            if (InvokeRequired)
+            {
+                Invoke(new Action(UpdateOpponentName));
+                return;
+            }
+            player2Label.Text = _opponentName;
+        }
+
+        private void DrawOpponentMove(int x1, int y1, int x2, int y2)
+        {
+            if (InvokeRequired)
+            {
+                Invoke(new Action(() => DrawOpponentMove(x1, y1, x2, y2)));
+                return;
+            }
+            foreach (Control control in gameBoard.Controls)
+            {
+                if (control is Guna2CircleButton dot && dot.Tag is Point pos && pos.X == x1 && pos.Y == y1)
+                {
+                    dot.FillColor = Color.Blue; 
+                    break;
+                }
+            }
+        }
+
+        private void SendMove(int x1, int y1, int x2, int y2)
+        {
+            if (_socket == null || !_socket.Connected) return;
+            string move = $"{x1},{y1},{x2},{y2}";
+            byte[] data = Encoding.UTF8.GetBytes(move);
+            _socket.Send(data);
+        }
+
         private void Dot_Click(object sender, EventArgs e)
         {
+            if (!_isMyTurn) return;
+
             var dot = (Guna2CircleButton)sender;
             var position = (Point)dot.Tag;
-
-            dot.FillColor = dot.FillColor == Color.LightGray ? Color.Red : Color.LightGray;
-            UpdateScore(1, 0);
+            dot.FillColor = Color.Red;
+            SendMove(position.X, position.Y, position.X, position.Y); 
+            _isMyTurn = false;
         }
 
         private void UpdateScore(int player1Score, int player2Score)
@@ -230,16 +347,22 @@ namespace DotsGame.Forms
 
         private void SurrenderGame()
         {
-            if (MessageBox.Show("Вы уверены, что хотите сдаться?", "Подтверждение",
-                MessageBoxButtons.YesNo) == DialogResult.Yes)
+            if (MessageBox.Show("Вы уверены, что хотите сдаться?", "Подтверждение", MessageBoxButtons.YesNo) == DialogResult.Yes)
             {
+                _socket?.Close();
                 this.Close();
             }
         }
 
         private void UndoMove()
         {
-            MessageBox.Show("Ход отменен", "Информация");
+            MessageBox.Show("Ход отменён", "Информация");
+        }
+
+        protected override void OnFormClosing(FormClosingEventArgs e)
+        {
+            _socket?.Close();
+            base.OnFormClosing(e);
         }
     }
 }

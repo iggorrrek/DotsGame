@@ -11,8 +11,8 @@ namespace DotsGame.Data
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
             optionsBuilder.UseSqlServer(
-                @"Server=(localdb)\MSSQLLocalDB;Database=DotsDB;Trusted_Connection=True;",
-                options => options.EnableRetryOnFailure());
+                Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection")
+                ?? @"Server=(localdb)\MSSQLLocalDB;Database=DotsDB;Trusted_Connection=True;");
         }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)

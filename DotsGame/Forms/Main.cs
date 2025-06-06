@@ -104,6 +104,44 @@ namespace DotsGame.Forms
             statsPanel.Controls.Add(lblGamesCount);
             statsPanel.Controls.Add(lblWinsCount);
 
+            var btnHostGame = new Guna2Button()
+            {
+                Text = "Создать игру (Хост)",
+                Size = new Size(200, 40),
+                Location = new Point(30, 300),
+                BorderRadius = 10,
+                Font = new Font("Segoe UI", 10)
+            };
+            btnHostGame.Click += (s, e) =>
+            {
+                var gameForm = new Game(_currentUser, isHost: true);
+                gameForm.Show();
+                this.Hide();
+                gameForm.FormClosed += (s, args) => this.Show();
+            };
+
+            var btnJoinGame = new Guna2Button()
+            {
+                Text = "Подключиться (Клиент)",
+                Size = new Size(200, 40),
+                Location = new Point(30, 350),
+                BorderRadius = 10,
+                Font = new Font("Segoe UI", 10)
+            };
+
+            btnJoinGame.Click += (s, e) =>
+            {
+                string ip = Microsoft.VisualBasic.Interaction.InputBox("Введите IP хоста:", "Подключение к игре");
+                if (!string.IsNullOrEmpty(ip))
+                {
+                    var gameForm = new Game(_currentUser, isHost: false, opponentIP: ip);
+                    gameForm.Show();
+                    this.Hide();
+                    gameForm.FormClosed += (s, args) => this.Show();
+                }
+            };
+
+            this.Controls.AddRange(new Control[] { btnHostGame, btnJoinGame });
             var historyLabel = new Label()
             {
                 Text = "История игр",
@@ -153,8 +191,26 @@ namespace DotsGame.Forms
                 historyGridView,
                 btnBack
             });
-        }
 
+        }
+        private void SaveGameResult(string opponentName, bool isWinner, int playerScore, int opponentScore)
+        {
+            using (var db = new AppDbContext())
+            {
+                var game = new GameHistory
+                {
+                    UserId = _currentUser.Id,
+                    OpponentName = opponentName,
+                    IsWinner = isWinner,
+                    PlayerScore = playerScore,
+                    OpponentScore = opponentScore,
+                    Date = DateTime.Now
+                };
+                db.GameHistories.Add(game);
+                db.SaveChanges();
+                LoadUserData(); 
+            }
+        }
         private void LoadUserData()
         {
             try
