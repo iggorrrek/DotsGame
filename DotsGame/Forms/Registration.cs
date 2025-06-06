@@ -21,7 +21,7 @@ namespace DotsGame.Forms
 
         private void ConfigureEmailField()
         {
-            txtEmail.PlaceholderText = "example@gmail.com";
+            txtEmail.PlaceholderText = "example@mail.ru";
             txtEmail.TextChanged += (sender, e) => ValidateEmailField();
             emailToolTip.SetToolTip(txtEmail, "Введите email в формате: user@example.com");
             emailToolTip.AutomaticDelay = 100;
